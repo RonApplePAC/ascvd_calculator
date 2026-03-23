@@ -273,11 +273,10 @@ h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
 let currentStep = 0;
 
 function goToStep(n) {
-  document.querySelectorAll('.step').forEach((el, i) => {
-    el.classList.toggle('active', i === n);
-  });
+  document.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('active', i === n));
   document.querySelectorAll('.tab').forEach((el, i) => {
     el.classList.toggle('active', i === n);
+    el.classList.toggle('done', i < n);
   });
   currentStep = n;
 }
@@ -346,12 +345,85 @@ function validateStep(step) {
 
 function calculate() {
   if (!validateStep(2)) return;
-  // Calculation logic added in Task 5
+
+  const p = getFormInputs();
+  const risk = calculateRisk(p);
+  const { cls, label } = getRiskClass(risk);
+
+  // Age warning on results tab
+  const ageWarn = document.getElementById('ageWarning');
+  if (p.age < 40 || p.age > 79) {
+    ageWarn.textContent = `Age ${p.age} is outside the validated range (40–79). Estimate may be less accurate.`;
+    ageWarn.classList.add('show');
+  } else {
+    ageWarn.classList.remove('show');
+  }
+
+  // Risk box
+  const riskBox = document.getElementById('riskBox');
+  riskBox.className = `risk-box ${cls}`;
+  riskBox.innerHTML = `
+    <div class="pct">${risk.toFixed(1)}%</div>
+    <div class="lbl">${label}</div>
+  `;
+
+  // Statin benefit
+  const statinSection = document.getElementById('statinSection');
+  if (!p.onStatin && p.ldl) {
+    const intensities = [
+      { label: 'Low',      pct: 0.30, highlight: false },
+      { label: 'Moderate', pct: 0.40, highlight: true  },
+      { label: 'High',     pct: 0.50, highlight: false }
+    ];
+    const cols = intensities.map(({ label, pct, highlight }) => {
+      const b = calculateStatinBenefit(p, p.ldl, pct);
+      return `
+        <div class="statin-col ${highlight ? 'highlight' : ''}">
+          <div class="intensity">${label}${highlight ? ' ★' : ''}</div>
+          <div class="ldl-new">LDL ↓ ${Math.round(pct*100)}% → ${b.newLdl} mg/dL</div>
+          <div class="risk-new">${b.newRisk.toFixed(1)}%</div>
+          <div class="abs-red">↓ ${b.absoluteReduction} pts</div>
+        </div>`;
+    }).join('');
+
+    statinSection.innerHTML = `
+      <div class="statin-title">Estimated Statin Benefit (patient not on statin)</div>
+      <div class="statin-grid">${cols}</div>
+      <div class="statin-note">
+        Risk recalculated using Pooled Cohort Equations with adjusted total cholesterol.
+        HDL held constant. LDL reduction based on published statin intensity data.
+      </div>`;
+    statinSection.style.display = 'block';
+  } else {
+    statinSection.style.display = 'none';
+  }
+
   goToStep(3);
 }
 
 function resetForm() {
-  // Reset logic added in Task 6
+  // Clear all number inputs
+  document.querySelectorAll('input[type=number]').forEach(el => {
+    el.value = '';
+    el.classList.remove('error');
+  });
+  // Clear all error messages
+  document.querySelectorAll('.err').forEach(el => el.classList.remove('show'));
+  // Clear warnings
+  document.querySelectorAll('.warning').forEach(el => el.classList.remove('show'));
+  // Reset toggles to defaults
+  [['sex','male'], ['diabetes','no'], ['bpTreated','no'], ['onStatin','no'], ['onAspirin','no']].forEach(([group, defaultVal]) => {
+    document.querySelectorAll(`[data-group="${group}"]`).forEach(b => {
+      b.classList.toggle('selected', b.dataset.value === defaultVal);
+    });
+  });
+  // Reset smoking to Never
+  document.querySelectorAll('[data-group="smoker"]').forEach(o => {
+    const isNever = o.dataset.value === 'never';
+    o.classList.toggle('selected', isNever);
+    const radio = o.querySelector('input[type=radio]');
+    if (radio) radio.checked = isNever;
+  });
   goToStep(0);
 }
 
@@ -387,7 +459,172 @@ function getRadio(name) {
   return checked ? checked.value : null;
 }
 
-// PCE engine will be inlined here in Task 6
+// src/pce.js
+// Pooled Cohort Equations — Goff et al. 2014, Circulation 129(25 Suppl 2):S49-73, Table B
+
+const GROUPS = {
+
+  white_female: {
+    mean: -29.1817,
+    baseline: 0.96652,
+    sum(p) {
+      const lnA = Math.log(p.age);
+      const lnC = Math.log(p.totalChol);
+      const lnH = Math.log(p.hdl);
+      const lnS = Math.log(p.sbp);
+      return -29.799 * lnA
+           +   4.884 * lnA * lnA
+           +  13.540 * lnC
+           +  -3.114 * lnA * lnC
+           + -13.578 * lnH
+           +   3.149 * lnA * lnH
+           + (p.bpTreated ? 2.019 : 1.957) * lnS
+           +   7.574 * p.currentSmoker
+           +  -1.665 * lnA * p.currentSmoker
+           +   0.661 * p.diabetes;
+    }
+  },
+
+  african_american_female: {
+    mean: 86.6081,
+    baseline: 0.95334,
+    sum(p) {
+      const lnA = Math.log(p.age);
+      const lnC = Math.log(p.totalChol);
+      const lnH = Math.log(p.hdl);
+      const lnS = Math.log(p.sbp);
+      return  17.1141 * lnA
+           +   0.9396 * lnC
+           + -18.9196 * lnH
+           +   4.4748 * lnA * lnH
+           + (p.bpTreated
+               ? 29.2907 * lnS + -6.4321 * lnA * lnS
+               : 27.8197 * lnS + -6.0873 * lnA * lnS)
+           +   0.6908 * p.currentSmoker
+           +   0.8738 * p.diabetes;
+    }
+  },
+
+  white_male: {
+    mean: 61.1816,
+    baseline: 0.91436,
+    sum(p) {
+      const lnA = Math.log(p.age);
+      const lnC = Math.log(p.totalChol);
+      const lnH = Math.log(p.hdl);
+      const lnS = Math.log(p.sbp);
+      return  12.344 * lnA
+           +  11.853 * lnC
+           +  -2.664 * lnA * lnC
+           +  -7.990 * lnH
+           +   1.769 * lnA * lnH
+           + (p.bpTreated ? 1.797 : 1.764) * lnS
+           +   7.837 * p.currentSmoker
+           +  -1.795 * lnA * p.currentSmoker
+           +   0.658 * p.diabetes;
+    }
+  },
+
+  african_american_male: {
+    mean: 19.5425,
+    baseline: 0.89536,
+    sum(p) {
+      const lnA = Math.log(p.age);
+      const lnC = Math.log(p.totalChol);
+      const lnH = Math.log(p.hdl);
+      const lnS = Math.log(p.sbp);
+      return  2.469 * lnA
+           +  0.302 * lnC
+           + -0.307 * lnH
+           + (p.bpTreated ? 1.916 : 1.809) * lnS
+           +  0.549 * p.currentSmoker
+           +  0.645 * p.diabetes;
+    }
+  }
+};
+
+/**
+ * Calculate 10-year ASCVD risk using the Pooled Cohort Equations.
+ * @param {object} p
+ * @param {number}  p.age          - years (40-79)
+ * @param {string}  p.sex          - 'male' | 'female'
+ * @param {string}  p.race         - 'white' | 'african_american' | 'other'
+ * @param {number}  p.totalChol    - mg/dL
+ * @param {number}  p.hdl          - mg/dL
+ * @param {number}  p.sbp          - mmHg (systolic)
+ * @param {boolean} p.bpTreated    - on antihypertensive medication
+ * @param {string}  p.smoker       - 'current' | 'former' | 'never'
+ * @param {boolean} p.diabetes     - history of diabetes
+ * @returns {number} 10-year risk as a percentage (e.g. 12.4)
+ */
+function calculateRisk(p) {
+  // 'other' race uses white equations per ACC/AHA guidance
+  const raceKey = p.race === 'african_american' ? 'african_american' : 'white';
+  const groupKey = `${raceKey}_${p.sex}`;
+  const group = GROUPS[groupKey];
+  if (!group) throw new Error(`Unknown group: ${groupKey}`);
+
+  const params = {
+    age: p.age,
+    totalChol: p.totalChol,
+    hdl: p.hdl,
+    sbp: p.sbp,
+    bpTreated: p.bpTreated,
+    currentSmoker: p.smoker === 'current' ? 1 : 0,
+    diabetes: p.diabetes ? 1 : 0
+  };
+
+  const individualSum = group.sum(params);
+  const risk = 1 - Math.pow(group.baseline, Math.exp(individualSum - group.mean));
+  return Math.round(risk * 1000) / 10;
+}
+
+/**
+ * Estimate statin benefit by reducing LDL and recalculating risk.
+ * Total cholesterol is adjusted by the LDL delta; HDL is held constant.
+ * @param {object} baseInputs  - same shape as calculateRisk param
+ * @param {number} ldl         - current LDL mg/dL
+ * @param {number} reduction   - fractional reduction (e.g. 0.30 for 30%)
+ * @returns {{ newLdl, newTotalChol, newRisk, absoluteReduction }}
+ */
+function calculateStatinBenefit(baseInputs, ldl, reduction) {
+  const newLdl = ldl * (1 - reduction);
+  const ldlDelta = ldl - newLdl;
+  const newTotalChol = baseInputs.totalChol - ldlDelta;
+  const clampedTC = Math.max(newTotalChol, 100); // never below 100 mg/dL
+  const adjustedInputs = { ...baseInputs, totalChol: clampedTC };
+  const baseRisk = calculateRisk(baseInputs);
+  const newRisk = calculateRisk(adjustedInputs);
+  return {
+    newLdl: Math.round(newLdl),
+    newTotalChol: Math.round(newTotalChol),
+    newRisk,
+    absoluteReduction: Math.round((baseRisk - newRisk) * 10) / 10
+  };
+}
+
+function getRiskClass(pct) {
+  if (pct < 5)   return { cls: 'risk-low',          label: 'Low Risk (< 5%)' };
+  if (pct < 7.5) return { cls: 'risk-borderline',   label: 'Borderline Risk (5% – 7.4%)' };
+  if (pct < 20)  return { cls: 'risk-intermediate', label: 'Intermediate Risk (7.5% – 20%)' };
+  return             { cls: 'risk-high',             label: 'High Risk (≥ 20%)' };
+}
+
+function getFormInputs() {
+  return {
+    age:       parseFloat(document.getElementById('age').value),
+    sex:       getToggle('sex'),
+    race:      document.getElementById('race').value,
+    totalChol: parseFloat(document.getElementById('totalChol').value),
+    hdl:       parseFloat(document.getElementById('hdl').value),
+    sbp:       parseFloat(document.getElementById('sbp').value),
+    bpTreated: getToggle('bpTreated') === 'yes',
+    smoker:    getRadio('smoker'),
+    diabetes:  getToggle('diabetes') === 'yes',
+    onStatin:  getToggle('onStatin') === 'yes',
+    ldl:       parseFloat(document.getElementById('ldl').value) || null
+  };
+}
 </script>
 </body>
 </html>
