@@ -128,7 +128,32 @@ h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
 
     <!-- Step 0: Demographics -->
     <div class="step active" id="step0">
-      <!-- fields added in Task 3 -->
+      <div id="ageWarningBanner" class="warning"></div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label for="age">Age (years)</label>
+          <input type="number" id="age" placeholder="40–79" min="18" max="100">
+          <div class="err" id="ageErr">Required (40–79)</div>
+        </div>
+        <div class="field">
+          <label>Sex</label>
+          <div class="toggle-group">
+            <div class="toggle-btn selected" data-group="sex" data-value="male" onclick="selectToggle(this)">Male</div>
+            <div class="toggle-btn"          data-group="sex" data-value="female" onclick="selectToggle(this)">Female</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="race">Race / Ethnicity</label>
+        <select id="race" style="width:100%;padding:8px 10px;border:1px solid #ced4da;border-radius:5px;font-size:14px;">
+          <option value="white">White</option>
+          <option value="african_american">African American</option>
+          <option value="other">Other (uses White equation)</option>
+        </select>
+      </div>
+
       <div class="nav">
         <span></span>
         <button class="btn btn-primary" onclick="nextStep()">Next: Labs →</button>
@@ -137,7 +162,35 @@ h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
 
     <!-- Step 1: Labs -->
     <div class="step" id="step1">
-      <!-- fields added in Task 3 -->
+      <div class="grid-2">
+        <div class="field">
+          <label for="sbp">Systolic BP (mmHg)</label>
+          <input type="number" id="sbp" placeholder="e.g. 128">
+          <div class="err" id="sbpErr">Required (70–250)</div>
+        </div>
+        <div class="field">
+          <label for="dbp">Diastolic BP (mmHg)</label>
+          <input type="number" id="dbp" placeholder="e.g. 82">
+          <div class="hint">Collected for context</div>
+        </div>
+        <div class="field">
+          <label for="totalChol">Total Cholesterol (mg/dL)</label>
+          <input type="number" id="totalChol" placeholder="e.g. 200">
+          <div class="err" id="totalCholErr">Required (100–400)</div>
+        </div>
+        <div class="field">
+          <label for="hdl">HDL (mg/dL)</label>
+          <input type="number" id="hdl" placeholder="e.g. 50">
+          <div class="err" id="hdlErr">Required (20–150)</div>
+        </div>
+        <div class="field">
+          <label for="ldl">LDL (mg/dL)</label>
+          <input type="number" id="ldl" placeholder="e.g. 120">
+          <div class="hint">Used for statin benefit estimate</div>
+          <div class="err" id="ldlErr">Required when not on statin (10–300)</div>
+        </div>
+      </div>
+
       <div class="nav">
         <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
         <button class="btn btn-primary" onclick="nextStep()">Next: History →</button>
@@ -192,8 +245,50 @@ function prevStep() {
 }
 
 function validateStep(step) {
-  // Validation logic added in Task 3 and 4
-  return true;
+  let valid = true;
+
+  function require(id, errId, condition) {
+    const el = document.getElementById(id);
+    const err = document.getElementById(errId);
+    if (!condition(el.value)) {
+      el.classList.add('error');
+      if (err) err.classList.add('show');
+      valid = false;
+    } else {
+      el.classList.remove('error');
+      if (err) err.classList.remove('show');
+    }
+  }
+
+  if (step === 0) {
+    const ageVal = parseFloat(document.getElementById('age').value);
+    require('age', 'ageErr', v => v !== '' && !isNaN(v) && v >= 18 && v <= 110);
+    // Show warning but do not block if age outside 40-79
+    const banner = document.getElementById('ageWarningBanner');
+    if (!isNaN(ageVal) && (ageVal < 40 || ageVal > 79)) {
+      banner.textContent = `Age ${ageVal} is outside the validated range (40–79). Risk estimate may be less accurate.`;
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
+  }
+
+  if (step === 1) {
+    require('sbp', 'sbpErr', v => v !== '' && +v >= 70 && +v <= 250);
+    require('totalChol', 'totalCholErr', v => v !== '' && +v >= 100 && +v <= 400);
+    require('hdl', 'hdlErr', v => v !== '' && +v >= 20 && +v <= 150);
+    // LDL required only when patient not on statin (checked in step 2)
+  }
+
+  if (step === 2) {
+    // If patient is not on statin, LDL is required for statin benefit calculation
+    const notOnStatin = getToggle('onStatin') === 'no';
+    if (notOnStatin) {
+      require('ldl', 'ldlErr', v => v !== '' && +v >= 10 && +v <= 300);
+    }
+  }
+
+  return valid;
 }
 
 function calculate() {
@@ -213,6 +308,17 @@ document.querySelectorAll('.tab').forEach((tab, i) => {
     if (i < currentStep || i === currentStep) goToStep(i);
   });
 });
+
+function selectToggle(el) {
+  const group = el.dataset.group;
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function getToggle(group) {
+  const sel = document.querySelector(`[data-group="${group}"].selected`);
+  return sel ? sel.dataset.value : null;
+}
 
 // PCE engine will be inlined here in Task 6
 </script>
