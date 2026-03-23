@@ -199,7 +199,54 @@ h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
 
     <!-- Step 2: History & Meds -->
     <div class="step" id="step2">
-      <!-- fields added in Task 4 -->
+      <div class="grid-2">
+        <div class="field">
+          <label>Smoking Status</label>
+          <div class="radio-group">
+            <label class="radio-opt selected" data-group="smoker" data-value="never">
+              <input type="radio" name="smoker" value="never" checked> Never
+            </label>
+            <label class="radio-opt" data-group="smoker" data-value="former">
+              <input type="radio" name="smoker" value="former"> Former
+            </label>
+            <label class="radio-opt" data-group="smoker" data-value="current">
+              <input type="radio" name="smoker" value="current"> Current
+            </label>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="field">
+            <label>Diabetes (Hx)</label>
+            <div class="toggle-group">
+              <div class="toggle-btn" data-group="diabetes" data-value="yes" onclick="selectToggle(this)">Yes</div>
+              <div class="toggle-btn selected" data-group="diabetes" data-value="no" onclick="selectToggle(this)">No</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>On HTN Treatment</label>
+            <div class="toggle-group">
+              <div class="toggle-btn" data-group="bpTreated" data-value="yes" onclick="selectToggle(this)">Yes</div>
+              <div class="toggle-btn selected" data-group="bpTreated" data-value="no" onclick="selectToggle(this)">No</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>On Statin</label>
+            <div class="toggle-group">
+              <div class="toggle-btn" data-group="onStatin" data-value="yes" onclick="selectToggle(this)">Yes</div>
+              <div class="toggle-btn selected" data-group="onStatin" data-value="no" onclick="selectToggle(this)">No</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>On Aspirin</label>
+            <div class="toggle-group">
+              <div class="toggle-btn" data-group="onAspirin" data-value="yes" onclick="selectToggle(this)">Yes</div>
+              <div class="toggle-btn selected" data-group="onAspirin" data-value="no" onclick="selectToggle(this)">No</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="nav">
         <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
         <button class="btn btn-success" onclick="calculate()">Calculate Risk →</button>
@@ -318,6 +365,20 @@ function selectToggle(el) {
 function getToggle(group) {
   const sel = document.querySelector(`[data-group="${group}"].selected`);
   return sel ? sel.dataset.value : null;
+}
+
+document.querySelectorAll('.radio-opt').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const group = opt.dataset.group;
+    document.querySelectorAll(`[data-group="${group}"]`).forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    opt.querySelector('input[type=radio]').checked = true;
+  });
+});
+
+function getRadio(name) {
+  const checked = document.querySelector(`input[name="${name}"]:checked`);
+  return checked ? checked.value : null;
 }
 
 // PCE engine will be inlined here in Task 6
