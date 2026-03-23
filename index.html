@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCVD Risk Calculator</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: #f1f3f5; min-height: 100vh; display: flex;
+       align-items: flex-start; justify-content: center; padding: 24px 16px; }
+.app { width: 100%; max-width: 640px; }
+h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
+      letter-spacing: -0.3px; }
+
+/* ── Tabs ─────────────────────────────────────────── */
+.tabs { display: flex; }
+.tab  { flex: 1; padding: 10px 8px; font-size: 12px; font-weight: 600;
+        text-align: center; background: #e9ecef; color: #868e96;
+        border: 1px solid #dee2e6; border-bottom: none; cursor: pointer;
+        transition: background 0.15s; user-select: none; }
+.tab:first-child { border-radius: 6px 0 0 0; }
+.tab:last-child  { border-radius: 0 6px 0 0; }
+.tab:not(:first-child) { border-left: none; }
+.tab.active { background: #1971c2; color: #fff; border-color: #1971c2; }
+.tab.done   { background: #d3f9d8; color: #2b8a3e; border-color: #b2f2bb; cursor: pointer; }
+
+/* ── Panel ────────────────────────────────────────── */
+.panel { background: #fff; border: 1px solid #dee2e6;
+         border-radius: 0 0 8px 8px; padding: 24px; }
+.step  { display: none; }
+.step.active { display: block; }
+
+/* ── Form elements ────────────────────────────────── */
+.field        { margin-bottom: 16px; }
+.field label  { display: block; font-size: 12px; font-weight: 600;
+                color: #495057; margin-bottom: 5px; }
+.field input  { width: 100%; padding: 8px 10px; border: 1px solid #ced4da;
+                border-radius: 5px; font-size: 14px; color: #212529;
+                outline: none; transition: border-color 0.15s; }
+.field input:focus { border-color: #74c0fc; }
+.field input.error { border-color: #fa5252; }
+.field .hint  { font-size: 11px; color: #adb5bd; margin-top: 3px; }
+.field .err   { font-size: 11px; color: #fa5252; margin-top: 3px; display: none; }
+.field .err.show { display: block; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── Toggle buttons ───────────────────────────────── */
+.toggle-group   { display: flex; gap: 6px; }
+.toggle-btn     { flex: 1; padding: 8px; border: 1px solid #dee2e6;
+                  border-radius: 5px; font-size: 13px; text-align: center;
+                  cursor: pointer; background: #f8f9fa; color: #495057;
+                  transition: all 0.15s; user-select: none; }
+.toggle-btn.selected { background: #d0ebff; border-color: #74c0fc;
+                        color: #1864ab; font-weight: 600; }
+
+/* ── Radio group (smoking) ────────────────────────── */
+.radio-group     { display: flex; flex-direction: column; gap: 5px; }
+.radio-opt       { display: flex; align-items: center; gap: 8px;
+                   padding: 7px 10px; border: 1px solid #dee2e6;
+                   border-radius: 5px; cursor: pointer; font-size: 13px;
+                   background: #f8f9fa; color: #495057; transition: all 0.15s; }
+.radio-opt.selected { background: #d0ebff; border-color: #74c0fc;
+                       color: #1864ab; font-weight: 600; }
+.radio-opt input[type=radio] { display: none; }
+
+/* ── Warning banner ───────────────────────────────── */
+.warning { background: #fff3cd; border: 1px solid #ffc107;
+           border-radius: 5px; padding: 10px 14px; font-size: 12px;
+           color: #856404; margin-bottom: 16px; display: none; }
+.warning.show { display: block; }
+
+/* ── Nav buttons ──────────────────────────────────── */
+.nav { display: flex; justify-content: space-between; margin-top: 24px; }
+.btn { padding: 10px 22px; border-radius: 5px; font-size: 13px;
+       font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+.btn-primary  { background: #1971c2; color: #fff; }
+.btn-primary:hover  { background: #1864ab; }
+.btn-success  { background: #2f9e44; color: #fff; }
+.btn-success:hover  { background: #2b8a3e; }
+.btn-ghost    { background: #f1f3f5; color: #495057;
+                border: 1px solid #dee2e6; }
+.btn-ghost:hover    { background: #e9ecef; }
+
+/* ── Results ──────────────────────────────────────── */
+.risk-box      { text-align: center; border-radius: 8px; padding: 20px;
+                 margin-bottom: 20px; border: 2px solid; }
+.risk-box .pct { font-size: 52px; font-weight: 900; line-height: 1; }
+.risk-box .lbl { font-size: 13px; font-weight: 600; margin-top: 6px; }
+.risk-low      { background: #ebfbee; border-color: #8ce99a; color: #2b8a3e; }
+.risk-borderline { background: #fff9db; border-color: #ffe066; color: #e67700; }
+.risk-intermediate { background: #fff4e6; border-color: #ffa94d; color: #d9480f; }
+.risk-high     { background: #fff5f5; border-color: #ffa8a8; color: #c92a2a; }
+
+.statin-section { background: #f4fce3; border: 1px solid #94d82d;
+                  border-radius: 8px; padding: 20px; }
+.statin-title   { font-size: 12px; font-weight: 700; color: #5c940d;
+                  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+.statin-grid    { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.statin-col     { background: #fff; border: 1px solid #c0eb75;
+                  border-radius: 6px; padding: 12px; text-align: center; }
+.statin-col.highlight { border: 2px solid #2f9e44; }
+.statin-col .intensity { font-size: 10px; font-weight: 700; color: #5c940d;
+                          text-transform: uppercase; margin-bottom: 6px; }
+.statin-col .ldl-new   { font-size: 13px; color: #495057; margin-bottom: 2px; }
+.statin-col .risk-new  { font-size: 16px; font-weight: 800; color: #2f9e44; }
+.statin-col .abs-red   { font-size: 11px; color: #74b816; margin-top: 4px; }
+.statin-note    { font-size: 10px; color: #74b816; margin-top: 10px; }
+
+.result-nav { display: flex; justify-content: space-between; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>ASCVD 10-Year Risk Calculator</h1>
+
+  <!-- Tab bar -->
+  <div class="tabs" id="tabBar">
+    <div class="tab active" data-step="0">1 · Demographics</div>
+    <div class="tab"        data-step="1">2 · Labs</div>
+    <div class="tab"        data-step="2">3 · History &amp; Meds</div>
+    <div class="tab"        data-step="3">4 · Results</div>
+  </div>
+
+  <div class="panel">
+
+    <!-- Step 0: Demographics -->
+    <div class="step active" id="step0">
+      <!-- fields added in Task 3 -->
+      <div class="nav">
+        <span></span>
+        <button class="btn btn-primary" onclick="nextStep()">Next: Labs →</button>
+      </div>
+    </div>
+
+    <!-- Step 1: Labs -->
+    <div class="step" id="step1">
+      <!-- fields added in Task 3 -->
+      <div class="nav">
+        <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+        <button class="btn btn-primary" onclick="nextStep()">Next: History →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: History & Meds -->
+    <div class="step" id="step2">
+      <!-- fields added in Task 4 -->
+      <div class="nav">
+        <button class="btn btn-ghost" onclick="prevStep()">← Back</button>
+        <button class="btn btn-success" onclick="calculate()">Calculate Risk →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Results -->
+    <div class="step" id="step3">
+      <!-- populated by calculate() in Task 5 -->
+      <div id="ageWarning" class="warning"></div>
+      <div id="riskBox" class="risk-box"></div>
+      <div id="statinSection" class="statin-section" style="display:none"></div>
+      <div class="result-nav">
+        <button class="btn btn-ghost" onclick="goToStep(2)">← Edit Inputs</button>
+        <button class="btn btn-ghost" onclick="resetForm()">↺ New Patient</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Navigation state ───────────────────────────────────────
+let currentStep = 0;
+
+function goToStep(n) {
+  document.querySelectorAll('.step').forEach((el, i) => {
+    el.classList.toggle('active', i === n);
+  });
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', i === n);
+  });
+  currentStep = n;
+}
+
+function nextStep() {
+  if (!validateStep(currentStep)) return;
+  goToStep(currentStep + 1);
+}
+
+function prevStep() {
+  goToStep(currentStep - 1);
+}
+
+function validateStep(step) {
+  // Validation logic added in Task 3 and 4
+  return true;
+}
+
+function calculate() {
+  if (!validateStep(2)) return;
+  // Calculation logic added in Task 5
+  goToStep(3);
+}
+
+function resetForm() {
+  // Reset logic added in Task 6
+  goToStep(0);
+}
+
+// Tab click-to-jump (only for completed tabs)
+document.querySelectorAll('.tab').forEach((tab, i) => {
+  tab.addEventListener('click', () => {
+    if (i < currentStep || i === currentStep) goToStep(i);
+  });
+});
+
+// PCE engine will be inlined here in Task 6
+</script>
+</body>
+</html>
