@@ -133,8 +133,8 @@ h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
       <div class="grid-2">
         <div class="field">
           <label for="age">Age (years)</label>
-          <input type="number" id="age" placeholder="40–79" min="18" max="100">
-          <div class="err" id="ageErr">Required (age must be a number)</div>
+          <input type="number" id="age" placeholder="40–79" min="18" max="110">
+          <div class="err" id="ageErr">Required (18–110)</div>
         </div>
         <div class="field">
           <label>Sex</label>
@@ -332,6 +332,12 @@ function validateStep(step) {
     const notOnStatin = getToggle('onStatin') === 'no';
     if (notOnStatin) {
       require('ldl', 'ldlErr', v => v !== '' && +v >= 10 && +v <= 300);
+    } else {
+      // Clear any stale LDL error from a previous validation run
+      const ldlEl = document.getElementById('ldl');
+      const ldlErr = document.getElementById('ldlErr');
+      if (ldlEl) ldlEl.classList.remove('error');
+      if (ldlErr) ldlErr.classList.remove('show');
     }
   }
 
