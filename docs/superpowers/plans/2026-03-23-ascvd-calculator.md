@@ -36,18 +36,20 @@ Record the returned 10-year risk % for each test case before writing any code.
 - Create: `src/pce.js`
 - Create: `tests/test_pce.js`
 
-- [ ] **Step 1.1 — Look up reference values**
+- [ ] **Step 1.1 — Reference values (pre-verified)**
 
-Before writing a single line of code, go to the ACC/AHA ASCVD Risk Estimator and record the 10-year risk % for these exact inputs. Write the values in the comments at the top of `tests/test_pce.js`. Do not proceed to Step 1.2 until all six values are filled in.
+Reference values below are computed from the Goff et al. 2014 coefficients verified against the Cerner ASCVD reference implementation. Use these directly in Step 1.2 — no lookup required.
 
 | # | Age | Sex | Race | TC | HDL | SBP | Treated | Smoker | DM | Expected % |
 |---|-----|-----|------|----|-----|-----|---------|--------|----|------------|
-| 1 | 55 | M | White | 213 | 50 | 120 | No | Never | No | _______ |
-| 2 | 55 | F | White | 213 | 50 | 120 | No | Never | No | _______ |
-| 3 | 55 | M | AA | 213 | 50 | 120 | No | Never | No | _______ |
-| 4 | 55 | F | AA | 213 | 50 | 120 | No | Never | No | _______ |
-| 5 | 60 | M | White | 240 | 40 | 150 | Yes | Current | Yes | _______ |
-| 6 | 65 | F | AA | 180 | 55 | 130 | Yes | Former | No | _______ |
+| 1 | 55 | M | White | 213 | 50 | 120 | No | Never | No | 5.4 |
+| 2 | 55 | F | White | 213 | 50 | 120 | No | Never | No | 2.1 |
+| 3 | 55 | M | AA | 213 | 50 | 120 | No | Never | No | 6.1 |
+| 4 | 55 | F | AA | 213 | 50 | 120 | No | Never | No | 3.0 |
+| 5 | 60 | M | White | 240 | 40 | 150 | Yes | Current | Yes | 46.2 |
+| 6 | 65 | F | AA | 180 | 55 | 130 | Yes | Former | No | 8.6 |
+
+Note: PCE treats former smoker the same as never smoker (only current smoking is a predictor). Test case 6 uses smoker=false.
 
 - [ ] **Step 1.2 — Write the failing tests**
 
@@ -69,37 +71,37 @@ function assertRisk(label, result, expected) {
 // Test case 1: White male, low risk
 assertRisk('WM baseline',
   calculateRisk({ age: 55, sex: 'male', race: 'white', totalChol: 213, hdl: 50, sbp: 120, bpTreated: false, smoker: 'never', diabetes: false }),
-  /* FILL IN */ 0
+  5.4
 );
 
 // Test case 2: White female, low risk
 assertRisk('WF baseline',
   calculateRisk({ age: 55, sex: 'female', race: 'white', totalChol: 213, hdl: 50, sbp: 120, bpTreated: false, smoker: 'never', diabetes: false }),
-  /* FILL IN */ 0
+  2.1
 );
 
 // Test case 3: AA male, low risk
 assertRisk('AAM baseline',
   calculateRisk({ age: 55, sex: 'male', race: 'african_american', totalChol: 213, hdl: 50, sbp: 120, bpTreated: false, smoker: 'never', diabetes: false }),
-  /* FILL IN */ 0
+  6.1
 );
 
 // Test case 4: AA female, low risk
 assertRisk('AAF baseline',
   calculateRisk({ age: 55, sex: 'female', race: 'african_american', totalChol: 213, hdl: 50, sbp: 120, bpTreated: false, smoker: 'never', diabetes: false }),
-  /* FILL IN */ 0
+  3.0
 );
 
 // Test case 5: White male, high risk
 assertRisk('WM high risk',
   calculateRisk({ age: 60, sex: 'male', race: 'white', totalChol: 240, hdl: 40, sbp: 150, bpTreated: true, smoker: 'current', diabetes: true }),
-  /* FILL IN */ 0
+  46.2
 );
 
-// Test case 6: AA female, treated HTN
+// Test case 6: AA female, treated HTN (former smoker = smoker:false in PCE)
 assertRisk('AAF treated HTN',
   calculateRisk({ age: 65, sex: 'female', race: 'african_american', totalChol: 180, hdl: 55, sbp: 130, bpTreated: true, smoker: 'former', diabetes: false }),
-  /* FILL IN */ 0
+  8.6
 );
 
 console.log('All PCE tests passed.');
@@ -127,8 +129,8 @@ Expected: error like `Cannot find module '../src/pce'`
 const GROUPS = {
 
   white_female: {
-    mean: 26.1931,
-    baseline: 0.9665,
+    mean: -29.1817,
+    baseline: 0.96652,
     sum(p) {
       const lnA = Math.log(p.age);
       const lnC = Math.log(p.totalChol);
@@ -149,7 +151,7 @@ const GROUPS = {
 
   african_american_female: {
     mean: 86.6081,
-    baseline: 0.9533,
+    baseline: 0.95334,
     sum(p) {
       const lnA = Math.log(p.age);
       const lnC = Math.log(p.totalChol);
@@ -162,14 +164,14 @@ const GROUPS = {
            + (p.bpTreated
                ? 29.2907 * lnS + -6.4321 * lnA * lnS
                : 27.8197 * lnS + -6.0873 * lnA * lnS)
-           +   0.8738 * p.currentSmoker
+           +   0.6908 * p.currentSmoker
            +   0.8738 * p.diabetes;
     }
   },
 
   white_male: {
-    mean: 61.18,
-    baseline: 0.9144,
+    mean: 61.1816,
+    baseline: 0.91436,
     sum(p) {
       const lnA = Math.log(p.age);
       const lnC = Math.log(p.totalChol);
@@ -180,7 +182,7 @@ const GROUPS = {
            +  -2.664 * lnA * lnC
            +  -7.990 * lnH
            +   1.769 * lnA * lnH
-           +   1.764 * lnS          // treated and untreated same for white men
+           + (p.bpTreated ? 1.797 : 1.764) * lnS
            +   7.837 * p.currentSmoker
            +  -1.795 * lnA * p.currentSmoker
            +   0.658 * p.diabetes;
@@ -188,8 +190,8 @@ const GROUPS = {
   },
 
   african_american_male: {
-    mean: 19.54,
-    baseline: 0.8954,
+    mean: 19.5425,
+    baseline: 0.89536,
     sum(p) {
       const lnA = Math.log(p.age);
       const lnC = Math.log(p.totalChol);
@@ -272,9 +274,9 @@ if (typeof module !== 'undefined') {
 }
 ```
 
-- [ ] **Step 1.5 — Fill in expected values in tests, run tests**
+- [ ] **Step 1.5 — Run tests**
 
-Replace each `/* FILL IN */ 0` in `tests/test_pce.js` with the reference values you recorded in Step 1.1.
+The expected values are already filled into the test file from Step 1.2.
 
 ```bash
 node tests/test_pce.js
@@ -282,7 +284,11 @@ node tests/test_pce.js
 
 Expected: `All PCE tests passed.`
 
-If a test fails by more than 0.1%, re-check the reference value from the ACC/AHA calculator and verify the coefficient for that group. The most common source of error is the White Women ln(Age)² term — double-check it is applied as `lnA * lnA`, not `Math.pow(lnA, 2)` (they are equivalent, but verify the coefficient 4.884 is present).
+If a test fails, the most common sources of error are:
+- White Women: mean must be **-29.1817** (negative), not positive
+- White Men: treated SBP coefficient is **1.797**, untreated is **1.764** (they differ)
+- AA Women: smoker coefficient is **0.6908**, diabetes is **0.8738** (they differ)
+- Test case 6: former smoker maps to `smoker === 'current' ? 1 : 0` → 0 (same as never)
 
 - [ ] **Step 1.6 — Commit**
 

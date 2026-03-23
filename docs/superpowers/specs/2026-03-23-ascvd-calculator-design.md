@@ -73,8 +73,8 @@ Source: Goff DC Jr et al. "2013 ACC/AHA Guideline on the Assessment of Cardiovas
 | Current Smoker | 7.574 |
 | ln(Age) × Current Smoker | -1.665 |
 | Diabetes | 0.661 |
-| Mean Coefficient Sum | 26.1931 |
-| Baseline Survival (10yr) | 0.9665 |
+| Mean Coefficient Sum | -29.1817 |
+| Baseline Survival (10yr) | 0.96652 |
 
 **African American Women**
 | Predictor | Coefficient |
@@ -87,10 +87,10 @@ Source: Goff DC Jr et al. "2013 ACC/AHA Guideline on the Assessment of Cardiovas
 | ln(Age) × ln(Treated SBP) | -6.4321 |
 | ln(Untreated SBP) | 27.8197 |
 | ln(Age) × ln(Untreated SBP) | -6.0873 |
-| Current Smoker | 0.8738 |
+| Current Smoker | 0.6908 |
 | Diabetes | 0.8738 |
 | Mean Coefficient Sum | 86.6081 |
-| Baseline Survival (10yr) | 0.9533 |
+| Baseline Survival (10yr) | 0.95334 |
 
 **White Men**
 | Predictor | Coefficient |
@@ -100,13 +100,13 @@ Source: Goff DC Jr et al. "2013 ACC/AHA Guideline on the Assessment of Cardiovas
 | ln(Age) × ln(Total Chol) | -2.664 |
 | ln(HDL-C) | -7.990 |
 | ln(Age) × ln(HDL-C) | 1.769 |
-| ln(Treated SBP) | 1.764 |
+| ln(Treated SBP) | 1.797 |
 | ln(Untreated SBP) | 1.764 |
 | Current Smoker | 7.837 |
 | ln(Age) × Current Smoker | -1.795 |
 | Diabetes | 0.658 |
-| Mean Coefficient Sum | 61.180 |
-| Baseline Survival (10yr) | 0.9144 |
+| Mean Coefficient Sum | 61.1816 |
+| Baseline Survival (10yr) | 0.91436 |
 
 **African American Men**
 | Predictor | Coefficient |
@@ -118,8 +118,8 @@ Source: Goff DC Jr et al. "2013 ACC/AHA Guideline on the Assessment of Cardiovas
 | ln(Untreated SBP) | 1.809 |
 | Current Smoker | 0.549 |
 | Diabetes | 0.645 |
-| Mean Coefficient Sum | 19.540 |
-| Baseline Survival (10yr) | 0.8954 |
+| Mean Coefficient Sum | 19.5425 |
+| Baseline Survival (10yr) | 0.89536 |
 
 ---
 
