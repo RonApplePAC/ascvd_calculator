@@ -55,6 +55,72 @@ Predictors used (natural log transformed):
 
 Note: Diastolic BP and LDL are collected for clinical context but are not inputs to the PCE formula itself (PCE uses systolic BP + treatment status + total chol + HDL).
 
+### PCE Coefficients
+
+Source: Goff DC Jr et al. "2013 ACC/AHA Guideline on the Assessment of Cardiovascular Risk." *Circulation.* 2014;129(25 Suppl 2):S49–73. Table B.
+
+**White Women**
+| Predictor | Coefficient |
+|-----------|-------------|
+| ln(Age) | -29.799 |
+| ln(Age)² | 4.884 |
+| ln(Total Chol) | 13.540 |
+| ln(Age) × ln(Total Chol) | -3.114 |
+| ln(HDL-C) | -13.578 |
+| ln(Age) × ln(HDL-C) | 3.149 |
+| ln(Treated SBP) | 2.019 |
+| ln(Untreated SBP) | 1.957 |
+| Current Smoker | 7.574 |
+| ln(Age) × Current Smoker | -1.665 |
+| Diabetes | 0.661 |
+| Mean Coefficient Sum | -29.799 |
+| Baseline Survival (10yr) | 0.9665 |
+
+**African American Women**
+| Predictor | Coefficient |
+|-----------|-------------|
+| ln(Age) | 17.1141 |
+| ln(Total Chol) | 0.9396 |
+| ln(HDL-C) | -18.9196 |
+| ln(Age) × ln(HDL-C) | 4.4748 |
+| ln(Treated SBP) | 29.2907 |
+| ln(Age) × ln(Treated SBP) | -6.4321 |
+| ln(Untreated SBP) | 27.8197 |
+| ln(Age) × ln(Untreated SBP) | -6.0873 |
+| Current Smoker | 0.8738 |
+| Diabetes | 0.8738 |
+| Mean Coefficient Sum | 86.6081 |
+| Baseline Survival (10yr) | 0.9533 |
+
+**White Men**
+| Predictor | Coefficient |
+|-----------|-------------|
+| ln(Age) | 12.344 |
+| ln(Total Chol) | 11.853 |
+| ln(Age) × ln(Total Chol) | -2.664 |
+| ln(HDL-C) | -7.990 |
+| ln(Age) × ln(HDL-C) | 1.769 |
+| ln(Treated SBP) | 1.764 |
+| ln(Untreated SBP) | 1.764 |
+| Current Smoker | 7.837 |
+| ln(Age) × Current Smoker | -1.795 |
+| Diabetes | 0.658 |
+| Mean Coefficient Sum | 61.180 |
+| Baseline Survival (10yr) | 0.9144 |
+
+**African American Men**
+| Predictor | Coefficient |
+|-----------|-------------|
+| ln(Age) | 2.469 |
+| ln(Total Chol) | 0.302 |
+| ln(HDL-C) | -0.307 |
+| ln(Treated SBP) | 1.916 |
+| ln(Untreated SBP) | 1.809 |
+| Current Smoker | 0.549 |
+| Diabetes | 0.645 |
+| Mean Coefficient Sum | 19.540 |
+| Baseline Survival (10yr) | 0.8954 |
+
 ---
 
 ## Inputs
@@ -115,7 +181,7 @@ Three columns — Low, Moderate, High intensity — each showing:
 | Moderate | ~40% |
 | High | ~50% |
 
-**Statin math:** New LDL = LDL × (1 - reduction). Total cholesterol adjusted: new TC = TC - (LDL - newLDL). PCE re-run with new TC value, all other inputs unchanged.
+**Statin math:** New LDL = LDL × (1 - reduction). Total cholesterol adjusted: new TC = TC - (LDL - newLDL). PCE re-run with new TC value; HDL is held constant. All other inputs unchanged.
 
 Moderate intensity is highlighted as the standard recommendation.
 
@@ -142,7 +208,7 @@ Moderate intensity is highlighted as the standard recommendation.
 - No print/export function (v1)
 - No authentication
 - No network calls of any kind
-- No support for ages outside 40–79 (display a warning if entered)
+- Ages outside 40–79: display a warning banner but still calculate (do not block tab advancement)
 - No ASCVD risk enhancers (CAC score, hsCRP, etc.) — v1 only
 
 ---
