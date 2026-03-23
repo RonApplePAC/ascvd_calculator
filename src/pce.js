@@ -99,6 +99,7 @@ const GROUPS = {
  * @returns {number} 10-year risk as a percentage (e.g. 12.4)
  */
 function calculateRisk(p) {
+  // 'other' race uses white equations per ACC/AHA guidance
   const raceKey = p.race === 'african_american' ? 'african_american' : 'white';
   const groupKey = `${raceKey}_${p.sex}`;
   const group = GROUPS[groupKey];
@@ -131,7 +132,8 @@ function calculateStatinBenefit(baseInputs, ldl, reduction) {
   const newLdl = ldl * (1 - reduction);
   const ldlDelta = ldl - newLdl;
   const newTotalChol = baseInputs.totalChol - ldlDelta;
-  const adjustedInputs = { ...baseInputs, totalChol: newTotalChol };
+  const clampedTC = Math.max(newTotalChol, 100); // never below 100 mg/dL
+  const adjustedInputs = { ...baseInputs, totalChol: clampedTC };
   const baseRisk = calculateRisk(baseInputs);
   const newRisk = calculateRisk(adjustedInputs);
   return {
