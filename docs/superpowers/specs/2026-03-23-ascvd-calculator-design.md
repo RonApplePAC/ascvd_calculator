@@ -73,7 +73,7 @@ Source: Goff DC Jr et al. "2013 ACC/AHA Guideline on the Assessment of Cardiovas
 | Current Smoker | 7.574 |
 | ln(Age) × Current Smoker | -1.665 |
 | Diabetes | 0.661 |
-| Mean Coefficient Sum | -29.799 |
+| Mean Coefficient Sum | 26.1931 |
 | Baseline Survival (10yr) | 0.9665 |
 
 **African American Women**
