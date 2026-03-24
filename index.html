@@ -381,6 +381,7 @@ function calculate() {
         <div class="statin-col ${highlight ? 'highlight' : ''}">
           <div class="intensity">${label}${highlight ? ' ★' : ''}</div>
           <div class="ldl-new">LDL ↓ ${Math.round(pct*100)}% → ${b.newLdl} mg/dL</div>
+          <div class="ldl-new">Total Chol → ${b.newTotalChol} mg/dL</div>
           <div class="risk-new">${b.newRisk.toFixed(1)}%</div>
           <div class="abs-red">↓ ${b.absoluteReduction} pts</div>
         </div>`;
@@ -424,6 +425,13 @@ function resetForm() {
     const radio = o.querySelector('input[type=radio]');
     if (radio) radio.checked = isNever;
   });
+  // Clear results tab state
+  const riskBox = document.getElementById('riskBox');
+  riskBox.innerHTML = '';
+  riskBox.className = 'risk-box';
+  const statinSectionEl = document.getElementById('statinSection');
+  statinSectionEl.style.display = 'none';
+  statinSectionEl.innerHTML = '';
   goToStep(0);
 }
 
