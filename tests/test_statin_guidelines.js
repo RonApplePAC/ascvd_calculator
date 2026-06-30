@@ -63,4 +63,22 @@ assert(r11.intensity === 'high', 'high: intensity should be high');
 const r12 = getStatinRecommendation(base({ risk: 6, ldl: 172, familyHxPrematureASCVD: true }));
 assert(r12.enhancers.length === 2, 'both-enhancers: should detect two enhancers');
 
+// ldl: null (on-statin patient, intermediate risk)
+const r13 = getStatinRecommendation(base({ risk: 12, ldl: null }));
+assert(r13.intensity === 'moderate', 'null-ldl: intensity should be moderate');
+assert(r13.enhancers.length === 0, 'null-ldl: no ldl-based enhancer when ldl is null');
+
+// risk === 5.0 exactly: borderline (risk < 5 is false)
+const r14 = getStatinRecommendation(base({ risk: 5.0, ldl: 130 }));
+assert(r14.intensity === 'none', 'boundary-5: risk=5 should be borderline (intensity none, no enhancers)');
+
+// risk === 7.5 exactly: intermediate (risk < 7.5 is false)
+const r15 = getStatinRecommendation(base({ risk: 7.5, ldl: 130 }));
+assert(r15.intensity === 'moderate', 'boundary-7.5: risk=7.5 should be intermediate');
+
+// ldl === 190 exactly: triggers >= 190 override (ldl < 190 is false, so no 160-189 enhancer)
+const r16 = getStatinRecommendation(base({ risk: 3, ldl: 190 }));
+assert(r16.intensity === 'high', 'boundary-ldl190: ldl=190 triggers high-intensity override');
+assert(!r16.enhancers.some(e => e.includes('160–189')), 'boundary-ldl190: ldl=190 must NOT trigger 160-189 enhancer');
+
 console.log('All statin guidelines tests passed.');
