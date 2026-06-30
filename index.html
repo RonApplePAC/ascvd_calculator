@@ -244,6 +244,21 @@ h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
               <div class="toggle-btn selected" data-group="onAspirin" data-value="no" onclick="selectToggle(this)">No</div>
             </div>
           </div>
+          <div class="field">
+            <label>Existing ASCVD / CVD</label>
+            <div class="toggle-group">
+              <div class="toggle-btn" data-group="existingASCVD" data-value="yes" onclick="selectToggle(this)">Yes</div>
+              <div class="toggle-btn selected" data-group="existingASCVD" data-value="no" onclick="selectToggle(this)">No</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Family Hx: Premature ASCVD</label>
+            <div class="toggle-group">
+              <div class="toggle-btn" data-group="familyHx" data-value="yes" onclick="selectToggle(this)">Yes</div>
+              <div class="toggle-btn selected" data-group="familyHx" data-value="no" onclick="selectToggle(this)">No</div>
+            </div>
+            <div class="hint">1st-degree relative: CVD event &lt;55 (male) or &lt;65 (female)</div>
+          </div>
         </div>
       </div>
 
@@ -413,7 +428,7 @@ function resetForm() {
   // Clear warnings
   document.querySelectorAll('.warning').forEach(el => el.classList.remove('show'));
   // Reset toggles to defaults
-  [['sex','male'], ['diabetes','no'], ['bpTreated','no'], ['onStatin','no'], ['onAspirin','no']].forEach(([group, defaultVal]) => {
+  [['sex','male'], ['diabetes','no'], ['bpTreated','no'], ['onStatin','no'], ['onAspirin','no'], ['existingASCVD','no'], ['familyHx','no']].forEach(([group, defaultVal]) => {
     document.querySelectorAll(`[data-group="${group}"]`).forEach(b => {
       b.classList.toggle('selected', b.dataset.value === defaultVal);
     });
@@ -629,8 +644,10 @@ function getFormInputs() {
     bpTreated: getToggle('bpTreated') === 'yes',
     smoker:    getRadio('smoker'),
     diabetes:  getToggle('diabetes') === 'yes',
-    onStatin:  getToggle('onStatin') === 'yes',
-    ldl:       parseFloat(document.getElementById('ldl').value) || null
+    onStatin:           getToggle('onStatin') === 'yes',
+    ldl:                parseFloat(document.getElementById('ldl').value) || null,
+    existingASCVD:      getToggle('existingASCVD') === 'yes',
+    familyHxPrematureASCVD: getToggle('familyHx') === 'yes'
   };
 }
 </script>
