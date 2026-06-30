@@ -94,7 +94,7 @@ h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
 .risk-intermediate { background: #fff4e6; border-color: #ffa94d; color: #d9480f; }
 .risk-high     { background: #fff5f5; border-color: #ffa8a8; color: #c92a2a; }
 
-.statin-section { background: #f4fce3; border: 1px solid #94d82d;
+.statin-section { background: #fff; border: 1px solid #dee2e6;
                   border-radius: 8px; padding: 20px; }
 .statin-title   { font-size: 12px; font-weight: 700; color: #5c940d;
                   text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
@@ -108,6 +108,29 @@ h1  { font-size: 18px; font-weight: 700; color: #1864ab; margin-bottom: 20px;
 .statin-col .risk-new  { font-size: 16px; font-weight: 800; color: #2f9e44; }
 .statin-col .abs-red   { font-size: 11px; color: #74b816; margin-top: 4px; }
 .statin-note    { font-size: 10px; color: #74b816; margin-top: 10px; }
+
+/* ── Guideline banner ─────────────────────────────── */
+.guideline-banner { border-radius: 6px; padding: 12px 14px; margin-bottom: 12px;
+                    border: 1px solid; }
+.guideline-banner.risk-low          { background: #ebfbee; border-color: #8ce99a; color: #2b8a3e; }
+.guideline-banner.risk-borderline   { background: #fff9db; border-color: #ffe066; color: #e67700; }
+.guideline-banner.risk-intermediate { background: #fff4e6; border-color: #ffa94d; color: #d9480f; }
+.guideline-banner.risk-high         { background: #fff5f5; border-color: #ffa8a8; color: #c92a2a; }
+.guideline-banner.out-of-scope      { background: #f8f9fa; border-color: #dee2e6; color: #868e96; }
+.guideline-headline  { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+.guideline-detail    { font-size: 12px; margin-top: 3px; }
+.guideline-enhancers { font-size: 11px; margin-top: 5px; font-style: italic; }
+
+/* ── Adequacy card ────────────────────────────────── */
+.adequacy-card         { border-radius: 6px; padding: 12px 14px; font-size: 13px;
+                         font-weight: 600; margin-top: 0; border: 1px solid; }
+.adequacy-card.adequate { background: #ebfbee; border-color: #8ce99a; color: #2b8a3e; }
+.adequacy-card.confirm  { background: #fff9db; border-color: #ffe066; color: #e67700; }
+.adequacy-card.review   { background: #fff4e6; border-color: #ffa94d; color: #d9480f; }
+
+/* ── Guideline badge on statin column ─────────────── */
+.guideline-badge { font-size: 9px; font-weight: 700; text-transform: uppercase;
+                   color: #2f9e44; letter-spacing: 0.3px; margin-bottom: 4px; }
 
 .result-nav { display: flex; justify-content: space-between; margin-top: 20px; }
 </style>
@@ -382,33 +405,76 @@ function calculate() {
     <div class="lbl">${label}</div>
   `;
 
-  // Statin benefit
+  // Guideline recommendation
+  const rec = getStatinRecommendation({
+    risk,
+    ldl: p.ldl,
+    diabetes: p.diabetes,
+    existingASCVD: p.existingASCVD,
+    familyHxPrematureASCVD: p.familyHxPrematureASCVD
+  });
+
   const statinSection = document.getElementById('statinSection');
-  if (!p.onStatin && p.ldl) {
-    const intensities = [
-      { label: 'Low',      pct: 0.30, highlight: false },
-      { label: 'Moderate', pct: 0.40, highlight: true  },
-      { label: 'High',     pct: 0.50, highlight: false }
+
+  function bannerHtml(rec, cls) {
+    const { headline, detail, enhancers } = rec;
+    return `<div class="guideline-banner ${cls}">
+      <div class="guideline-headline">${headline}</div>
+      ${detail ? `<div class="guideline-detail">${detail}</div>` : ''}
+      ${enhancers && enhancers.length ? `<div class="guideline-enhancers">Risk enhancers: ${enhancers.join(' · ')}</div>` : ''}
+    </div>`;
+  }
+
+  if (rec.outOfScope) {
+    statinSection.innerHTML = `<div class="guideline-banner out-of-scope"><div class="guideline-headline">${rec.outOfScopeMsg}</div></div>`;
+    statinSection.style.display = 'block';
+  } else if (p.onStatin) {
+    const { intensity, footerNote } = rec;
+    const adequacyClass = (intensity === 'none' || intensity === 'low') ? 'adequate'
+                        : intensity === 'moderate' ? 'confirm' : 'review';
+    const adequacyText = adequacyClass === 'adequate'
+      ? '✓ Current statin therapy is consistent with guidelines for this risk level.'
+      : adequacyClass === 'confirm'
+      ? 'Guidelines recommend moderate-intensity statin therapy — confirm this is in use.'
+      : '⚠ Guidelines recommend high-intensity statin — confirm therapy is optimized for this risk level.';
+    statinSection.innerHTML = `
+      ${bannerHtml(rec, cls)}
+      <div class="adequacy-card ${adequacyClass}">${adequacyText}</div>
+      ${footerNote ? `<div class="statin-note">${footerNote}</div>` : ''}`;
+    statinSection.style.display = 'block';
+  } else if (p.ldl) {
+    const { intensity, footerNote } = rec;
+    const intensityMap = { low: 0, moderate: 1, high: 2 };
+    const highlightIdx = intensity in intensityMap ? intensityMap[intensity] : -1;
+    const intensityDefs = [
+      { label: 'Low',      pct: 0.30 },
+      { label: 'Moderate', pct: 0.40 },
+      { label: 'High',     pct: 0.50 }
     ];
-    const cols = intensities.map(({ label, pct, highlight }) => {
-      const b = calculateStatinBenefit(p, p.ldl, pct);
-      return `
-        <div class="statin-col ${highlight ? 'highlight' : ''}">
-          <div class="intensity">${label}${highlight ? ' ★' : ''}</div>
-          <div class="ldl-new">LDL ↓ ${Math.round(pct*100)}% → ${b.newLdl} mg/dL</div>
+
+    if (intensity === 'none') {
+      statinSection.innerHTML = bannerHtml(rec, cls);
+    } else {
+      const cols = intensityDefs.map(({ label, pct }, i) => {
+        const highlight = i === highlightIdx;
+        const b = calculateStatinBenefit(p, p.ldl, pct);
+        return `<div class="statin-col ${highlight ? 'highlight' : ''}">
+          ${highlight ? '<div class="guideline-badge">Guideline rec.</div>' : ''}
+          <div class="intensity">${label}</div>
+          <div class="ldl-new">LDL ↓ ${Math.round(pct * 100)}% → ${b.newLdl} mg/dL</div>
           <div class="ldl-new">Total Chol → ${b.newTotalChol} mg/dL</div>
           <div class="risk-new">${b.newRisk.toFixed(1)}%</div>
           <div class="abs-red">↓ ${b.absoluteReduction} pts</div>
         </div>`;
-    }).join('');
-
-    statinSection.innerHTML = `
-      <div class="statin-title">Estimated Statin Benefit (patient not on statin)</div>
-      <div class="statin-grid">${cols}</div>
-      <div class="statin-note">
-        Risk recalculated using Pooled Cohort Equations with adjusted total cholesterol.
-        HDL held constant. LDL reduction based on published statin intensity data.
-      </div>`;
+      }).join('');
+      statinSection.innerHTML = `
+        ${bannerHtml(rec, cls)}
+        <div class="statin-title">Estimated Statin Benefit (patient not on statin)</div>
+        <div class="statin-grid">${cols}</div>
+        <div class="statin-note">Risk recalculated using Pooled Cohort Equations with adjusted total cholesterol.
+          HDL held constant. LDL reduction based on published statin intensity data.
+          ${footerNote ? `<br>${footerNote}` : ''}</div>`;
+    }
     statinSection.style.display = 'block';
   } else {
     statinSection.style.display = 'none';
@@ -480,6 +546,79 @@ document.querySelectorAll('.radio-opt').forEach(opt => {
 function getRadio(name) {
   const checked = document.querySelector(`input[name="${name}"]:checked`);
   return checked ? checked.value : null;
+}
+
+// src/statin-guidelines.js
+function getStatinRecommendation({ risk, ldl, diabetes, existingASCVD, familyHxPrematureASCVD }) {
+  if (existingASCVD) {
+    return { outOfScope: true, outOfScopeMsg: 'Secondary prevention guidelines are outside this tool\'s scope.' };
+  }
+  if (diabetes) {
+    return { outOfScope: true, outOfScopeMsg: 'Statin guidelines for patients with diabetes are outside this tool\'s scope.' };
+  }
+
+  const enhancers = [];
+  if (familyHxPrematureASCVD) enhancers.push('Family history of premature ASCVD');
+  if (ldl !== null && ldl >= 160 && ldl < 190) enhancers.push(`LDL ${ldl} mg/dL (160–189 range)`);
+  const hasEnhancer = enhancers.length > 0;
+
+  if (ldl !== null && ldl >= 190) {
+    return {
+      outOfScope: false, intensity: 'high',
+      headline: 'LDL ≥ 190 mg/dL — evaluate for familial hypercholesterolemia.',
+      detail: 'High-intensity statin therapy indicated regardless of calculated 10-year risk.',
+      enhancers: [], footerNote: null
+    };
+  }
+
+  if (risk < 5) {
+    if (!hasEnhancer) {
+      return {
+        outOfScope: false, intensity: 'none',
+        headline: 'Lifestyle modifications recommended. Statin generally not indicated.',
+        detail: 'Reassess ASCVD risk in 4–6 years.', enhancers: [], footerNote: null
+      };
+    }
+    return {
+      outOfScope: false, intensity: 'low',
+      headline: 'Risk enhancer(s) present — consider statin discussion.',
+      detail: 'Some experts suggest moderate-intensity statin. Reassess in 4–6 years.',
+      enhancers, footerNote: null
+    };
+  }
+
+  if (risk < 7.5) {
+    if (!hasEnhancer) {
+      return {
+        outOfScope: false, intensity: 'none',
+        headline: 'Benefit from statin therapy is generally small.',
+        detail: 'Individualize risk–benefit discussion. Lifestyle modifications are primary.',
+        enhancers: [], footerNote: null
+      };
+    }
+    return {
+      outOfScope: false, intensity: 'low',
+      headline: 'Risk enhancer(s) present — consider statin discussion.',
+      detail: 'Risk–benefit discussion recommended.', enhancers, footerNote: null
+    };
+  }
+
+  if (risk < 20) {
+    return {
+      outOfScope: false, intensity: 'moderate',
+      headline: familyHxPrematureASCVD
+        ? 'Moderate-intensity statin recommended; high-intensity also reasonable.'
+        : 'Moderate-intensity statin therapy recommended.',
+      detail: '', enhancers,
+      footerNote: 'CAC scoring can help reclassify risk if clinical uncertainty exists.'
+    };
+  }
+
+  return {
+    outOfScope: false, intensity: 'high',
+    headline: 'High-intensity statin therapy recommended.',
+    detail: '', enhancers, footerNote: null
+  };
 }
 
 // src/pce.js
